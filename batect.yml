@@ -11,10 +11,67 @@ containers:
         name: node_modules
         container: /code/node_modules
     working_directory: /code
+  db:
+    image: postgres:alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - local: ./postgres-data
+        container: /var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: app
+      POSTGRES_DB: db
+  db-test:
+    image: postgres:alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: app
+      POSTGRES_DB: db
 
 tasks:
+  start-test-db:
+    description: 'Starting test db'
+    run:
+      container: db-test
+
   say-hello:
     description: Say hello to the nice person reading the Batect documentation
     run:
       container: my-container
       command: echo 'Hello world!'
+
+  # task for installing dependencies of fastify application
+  install-dep:
+    description: Install dependencies needed to build-fastify-env
+    run:
+      container: build-fastify-env
+      command: npm install
+
+  # task for running fastify application
+  start-server:
+    description: Run Fastify application
+    run:
+      environment:
+        PORT: 8080
+        POSTGRES_URI: postgres://app:password@db/db
+      container: build-fastify-env
+      command: npm run start
+      ports:
+        - 3000:8080
+    dependencies:
+      - db
+
+  # task for testing fastify application
+  test-watch:
+    description: Testing watch Fastify application
+    run:
+      environment:
+        PORT: 8080
+        POSTGRES_URI: postgres://app:password@db-test/db
+      container: build-fastify-env
+      command: npm run test:watch
+    dependencies:
+      - db-test

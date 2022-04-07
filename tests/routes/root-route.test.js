@@ -2,7 +2,7 @@ const build = require('../../src/app');
 
 let app;
 
-describe('Route route', () => {
+describe('Root route', () => {
   beforeEach(() => {
     app = build();
   });
